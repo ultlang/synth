@@ -1,10 +1,11 @@
 keyboard = document.getElementById("keyb");
 keysPressed = [];
 var audioContext;
-var freq;
 var bees;
-var wave;
-var waveSet = false;
+var freqs, waves;
+
+const OSC_COUNT = 8
+oscInUse = Array(OSC_COUNT).fill(false)
 
 //#region key arrays
 keys = ["1234567890", "QWERTYUIOP", "ASDFGHJKL", "\\ZXCVBNM,."];
@@ -52,9 +53,19 @@ function codesToCoords(codes) {
 		.find( x => x[1] != -1 ) || [-1,-1]))
 }
 
+function coordToFreq(coord) {
+	[place, oct] = coordToOct(coord)
+	if (place == -1) { 
+		return 0;
+	} else {
+		return Math.pow(2, (place+3)/EDO) * (1 << oct) * 110
+	}
+}
+
 function genSVG(){
 	svgboard = ""
-	svgtext =""
+	svgtext = ""
+	svgind = ""
 	a = codesToCoords_str(keysPressed)
 	
 	for (i = 0; i < keys.length; i++){
@@ -67,52 +78,62 @@ function genSVG(){
 			svgtext += `<text x="${x+20}" y="${y+20}" font-family="Fairfax HD" fill="${inactive ? 'lightgray' : 'black'}" font-size="20px" text-anchor="middle" dominant-baseline="central">${keys[i][j]}</text>`
 		}
 	}
-	keyboard.innerHTML = svgboard + svgtext
+	for (i = 0; i < OSC_COUNT; i++){
+		playing = oscInUse[i] != false
+		svgboard += `<rect x="550" y="${10+i*25}" width="15" height="15" fill="${playing ? '#cd96cd' : 'lightgray'}" stroke="${playing ? '#6c1d45' : 'silver'}" stroke-width="2"/>`
+	}
+	keyboard.innerHTML = svgboard + svgtext + svgind
 }
 
 function audio() {
 	a = codesToCoords(keysPressed).map(x => (x[0]==3 ? [3,x[1]-1].toString() : x.toString()))
-	if (a[0]) {
-		if (a.includes("3,-1") && !waveSet) {
-			wave.setValueAtTime(wave.value+1, audioContext.currentTime)
-			waveSet = true
+	if (a.includes("3,-1") && !waveSet) {
+		for (i=0;i<OSC_COUNT;i++) {
+			waves[i].setValueAtTime(waves[i].value+1, audioContext.currentTime)
 		}
-		if (!a.includes("3,-1")) {
-			waveSet = false
-		}
-		freq.setValueAtTime(coordtoFreq(a[a.length -1]), audioContext.currentTime);
-	} else {
-		freq.setValueAtTime(0, audioContext.currentTime);
+		waveSet = true
 	}
+	if (!a.includes("3,-1")) {
+		waveSet = false
+	}
+
+	for (value of oscInUse) {
+		if (value && !a.includes(value)) {
+			oscN = oscInUse.indexOf(value);
+			freqs[oscN].setValueAtTime(0, audioContext.currentTime);
+			oscInUse[oscN] = false;
+		}
+	}
+	for (coord of a) {
+		if (!oscInUse.includes(coord) && coordToFreq(coord) != 0) {
+			oscN = oscInUse.indexOf(false);
+			freqs[oscN].setValueAtTime(coordToFreq(coord), audioContext.currentTime);
+			oscInUse[oscN] = coord;
+		}
+	}
+
 }
 
-function coordtoFreq(coord) {
-	[place, oct] = coordToOct(coord)
-	if (place == -1) { 
-		return 0;
-	} else {
-		console.log(place)
-		return Math.pow(2, (place+3)/EDO) * (1 << oct) * 110
-	}
-}
+
 
 document.addEventListener("keydown", async (e) => {
 	if (!keysPressed.includes(e.code)) {
 		keysPressed.push(e.code);
 	}
 	if (!bees) {await setup();}
-	genSVG();
 	audio();
+	genSVG();
+
 })
 document.addEventListener("keyup", (e) => {
 	keysPressed.splice(keysPressed.indexOf(e.code),1)
-	genSVG();
 	audio();
+	genSVG();
 })
 document.addEventListener("blur", (e) => {
 	keysPressed = [];
-	genSVG();
 	audio();
+	genSVG();
 });
 
 genSVG();
@@ -123,15 +144,20 @@ genSVG();
 async function setup() {
 	audioContext = new AudioContext();
 	await audioContext.audioWorklet.addModule("mjau.js");
-	emmaNode = new AudioWorkletNode(
-		audioContext,
-		"emmasynth"
-	);
-	emmaNode.connect(audioContext.destination);
+	emmaNodes = []
+	for (i = 0; i < OSC_COUNT; i++) {
+		emmaNodes.push(new AudioWorkletNode(audioContext,"emmasynth"));
+	}
+	for (node of emmaNodes) {
+		node.connect(audioContext.destination);
+	}
 	bees = true;
 
-	freq = emmaNode.parameters.get("freq");
-	freq.setValueAtTime(110, audioContext.currentTime);
-	wave = emmaNode.parameters.get("wave");
+	freqs = []
+	waves = []
+	for (node of emmaNodes) {
+		freqs.push(node.parameters.get("freq"));
+		waves.push(node.parameters.get("wave"));
+	}
 
 }

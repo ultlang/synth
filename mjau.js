@@ -3,7 +3,7 @@ class EmmaSynth extends AudioWorkletProcessor {
 	return [
 		{
 			name: "gain",
-			defaultValue: 0.4,
+			defaultValue: 0.2,
 			minValue: 0,
 			maxValue: 1,
 			automationRate: "a-rate",
@@ -15,7 +15,7 @@ class EmmaSynth extends AudioWorkletProcessor {
 		},
 		{
 			name: "freq",
-			defaultValue: 220,
+			defaultValue: 0,
 			automationRate: "a-rate",
 		},
 	];
@@ -41,8 +41,8 @@ function mjau(parameters, i, par) {
 }
 
 function square(parameters, i) {
-	return ((currentFrame+i) % (sampleRate / mjau(parameters, i, "freq"))) > (sampleRate/2 / mjau(parameters, i, "freq") )
-		? mjau(parameters, i, "gain") : -mjau(parameters, i, "gain");
+	return 0.5 * (((currentFrame+i) % (sampleRate / mjau(parameters, i, "freq"))) > (sampleRate/2 / mjau(parameters, i, "freq") )
+		? mjau(parameters, i, "gain") : -mjau(parameters, i, "gain"));
 }
 
 function saw(parameters, i) {
