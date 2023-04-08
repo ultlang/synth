@@ -21,11 +21,19 @@ keycodes = keys.map(row => Array.from(row).map(
 	        names[char]));
 //#endregion
 
+layouts = {
+	2: [[1,1]],
+	5: [[0,1],[1,1],[1,1]],
+	7: [[0,1],[1,1],[1,1],[1,1]],
+	12: [[0,1],[1,1],[1,1],[0,1],[1,1],[1,1],[1,1]],
+	16: [[0,1],[1,1],[1,1],[1,1],[0,1],[1,1],[1,1],[1,1],[1,1]],
+}
+
 //#region edoids
 EDO = 12
-toprow = [-1,1,2,-1,4,5,6].map(x=>[0,x])
-bottomrow = [0,1,2,3,4,5,6].map(x=>[1,x])
-tonekeys = bottomrow.concat(toprow).sort((a, b) => a[1]+0.5*a[0] > b[1]+0.5*b[0]?1:-1)
+toprow    = new Array(layouts[EDO].length).fill(0).map((_,i)=>[0,layouts[EDO][i][0]?i:-1])
+bottomrow = new Array(layouts[EDO].length).fill(0).map((_,i)=>[1,layouts[EDO][i][1]?i:-1])
+tonekeys  = bottomrow.concat(toprow).sort((a, b) => a[1]+0.5*a[0] > b[1]+0.5*b[0]?1:-1)
 	.filter(x => x[1] != -1).map(x=>x.toString())
 if (tonekeys.length != EDO) {
 	throw Error("tuning does not match keyboard layout");
@@ -34,10 +42,12 @@ if (tonekeys.length != EDO) {
 
 function coordToOct(coord) {
 	[row, col] = coord.split(",").map(x => parseInt(x));
-	if (!tonekeys.includes([row%2,col%7].toString())) { //TODO: variable width, maybe height of layout
-		return  [-1, ((3-row)-(3-row)%2)/2 + (col-col%7)/7];
+	lw = layouts[EDO].length // layout width
+	if (!tonekeys.includes([row%2,col%lw].toString())) { //TODO: variable height of layout? maybe?
+		return  [-1, ((3-row)-(3-row)%2)/2 + (col-col%lw)/lw];
 	} else {
-		return [tonekeys.indexOf([row%2,col%7].toString()), ((3-row)-(3-row)%2)/2 + (col-col%7)/7]
+		return [tonekeys.indexOf([row%2,col%lw].toString()), ((3-row)-(3-row)%2)/2 + (col-col%lw)/lw]
+		//return [tonekeys.indexOf([row%2,col%lw].toString()) + ((3-row)-(3-row)%2)/4, (col-col%lw)/lw]
 	}
 }
 
@@ -74,7 +84,10 @@ function genSVG(){
 			y = 10 + 50*i;
 			pressed = a.includes([i,j].toString());
 			inactive = coordToOct([i,j].toString())[0] == -1
-			svgboard += `<rect width="40" height="40" stroke-width="2" fill="${inactive ? 'white' : pressed ? '#f5d4ee' : 'white'}" stroke="${inactive ? 'lightgray' : pressed ? '#6c1d45' : 'silver'}" x="${x}" y="${y}"/>`
+			cnote = coordToOct([i,i==3?j-1:j].toString())[0] == 0
+			fillcol = inactive ? 'white' : pressed ? '#f5d4ee' : 'white'
+			strokecol = inactive ? 'lightgray' : pressed ? '#6c1d45' : cnote ? 'gray' : 'silver'
+			svgboard += `<rect width="40" height="40" stroke-width="2" fill="${fillcol}" stroke="${strokecol}" x="${x}" y="${y}"/>`
 			svgtext += `<text x="${x+20}" y="${y+20}" font-family="Fairfax HD" fill="${inactive ? 'lightgray' : 'black'}" font-size="20px" text-anchor="middle" dominant-baseline="central">${keys[i][j]}</text>`
 		}
 	}
@@ -135,6 +148,35 @@ document.addEventListener("blur", (e) => {
 	audio();
 	genSVG();
 });
+
+function clickToCode(x, y) {
+	elemLeft = keyboard.getClientRects()[0].left;
+	elemTop = keyboard.getClientRects()[0].top;
+	x = x - elemLeft;
+	y = y - elemTop;
+	row = Math.floor((y-5)/50)
+	if (row >= 0 && row <= 3) {
+		col = Math.floor((x-5)/50-offsets[row]);
+	} else {return undefined}
+	return keycodes[row][col] || undefined
+}
+
+document.addEventListener("mousedown", async (e) => {
+	code = clickToCode(e.clientX, e.clientY)
+	if (!keysPressed.includes(code)) {
+		keysPressed.push(code);
+	}
+	if (!bees) {await setup();}
+	audio();
+	genSVG();
+})
+document.addEventListener("mouseup", async (e) => {
+	code = clickToCode(e.clientX, e.clientY)
+	keysPressed.splice(keysPressed.indexOf(code),1)
+	audio();
+	genSVG();
+})
+
 
 genSVG();
 
