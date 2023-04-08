@@ -7,3 +7,4 @@ features:
  - over 1.5 waveforms!
  - variable edo except you can't control it at all yet
  - 8 note polyphony
+ - mjauu :3
