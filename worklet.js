@@ -1,3 +1,7 @@
+var scopeDisplay = 0;
+var val;
+var port; 
+
 class EmmaSynth extends AudioWorkletProcessor {
 	static get parameterDescriptors() {
 	return [
@@ -21,15 +25,20 @@ class EmmaSynth extends AudioWorkletProcessor {
 	];
 	}
 
+	constructor(...args) {
+		super(...args);
+		port = this.port;
+		port.onmessage = e => {this.id = e.data[1]; };
+	}
+
 	process(inputs, outputs, parameters) {
 		const output = outputs[0];
 		output.forEach((channel) => {
 			for (let i = 0; i < channel.length; i++) {
-				channel[i] = [saw, square][p(parameters, i, "wave")%2](parameters, i)
-
-				// note: a parameter contains an array of 128 values (one value for each of 128 samples),
-				// however it may contain a single value which is to be used for all 128 samples
-				// if no automation is scheduled for the moment.
+				channel[i] = p(parameters,i,"freq")!=0 ? [saw, square][p(parameters, i, "wave")%2](parameters, i) : 0;
+				/*if (i % 70 == 0 && currentFrame % 10 == 0) {
+					port.postMessage([this.id, channel[i]]);
+				}*/ // TODO: fix scope lol his is not working at all.
 			}
 		});
 		return true;

@@ -1,11 +1,14 @@
 keyboard = document.getElementById("keyb");
+//scopehtml = document.getElementById("scope");
 keysPressed = [];
 var audioContext;
-var bees;
+var bees, waveSet;
 var freqs, waves;
 
 const OSC_COUNT = 8
 oscInUse = Array(OSC_COUNT).fill(false)
+b = Array(20).fill(0)
+//scope = Array(OSC_COUNT).fill([...b])
 
 //#region key arrays
 keys = ["1234567890", "QWERTYUIOP", "ASDFGHJKL", "\\ZXCVBNM,."];
@@ -76,6 +79,7 @@ function genSVG(){
 	svgboard = ""
 	svgtext = ""
 	svgind = ""
+	svgscope = ""
 	a = codesToCoords_str(keysPressed)
 	
 	for (i = 0; i < keys.length; i++){
@@ -91,11 +95,24 @@ function genSVG(){
 			svgtext += `<text x="${x+20}" y="${y+20}" font-family="Fairfax HD" fill="${inactive ? 'lightgray' : 'black'}" font-size="20px" text-anchor="middle" dominant-baseline="central">${keys[i][j]}</text>`
 		}
 	}
-	for (i = 0; i < OSC_COUNT; i++){
+	for (i = 0; i < OSC_COUNT; i++) {
 		playing = oscInUse[i] != false
 		svgboard += `<rect x="550" y="${10+i*25}" width="15" height="15" fill="${playing ? '#cd96cd' : 'lightgray'}" stroke="${playing ? '#6c1d45' : 'silver'}" stroke-width="2"/>`
 	}
 	keyboard.innerHTML = svgboard + svgtext + svgind
+}
+
+function genScope() {
+	svgscope += "<polyline fill='none' stroke-width='2' stroke='#6c1d45' points='"
+	for (i = 0; i < b.length; i++) {
+		svgscope += i*20;
+		svgscope += ",";
+		svgscope += 100 + 50*scope.map(x => x[i]).reduce((x,y)=>x+y);
+		console.log(100 + 50*scope.map(x => x[i]).reduce((x,y)=>x+y))
+		svgscope += " ";
+	}
+	svgscope += "' />";
+	scopehtml.innerHTML = svgscope;
 }
 
 function audio() {
@@ -118,15 +135,13 @@ function audio() {
 		}
 	}
 	for (coord of a) {
-		if (!oscInUse.includes(coord) && coordToFreq(coord) != 0) {
+		if (!oscInUse.includes(coord) && coordToFreq(coord) != 0 && oscInUse.includes(false)) {
 			oscN = oscInUse.indexOf(false);
 			freqs[oscN].setValueAtTime(coordToFreq(coord), audioContext.currentTime);
 			oscInUse[oscN] = coord;
 		}
 	}
-
 }
-
 
 
 document.addEventListener("keydown", async (e) => {
@@ -177,7 +192,6 @@ document.addEventListener("mouseup", async (e) => {
 	genSVG();
 })
 
-
 genSVG();
 
 ////////////////////////////////////////////
@@ -189,9 +203,18 @@ async function setup() {
 	emmaNodes = []
 	for (i = 0; i < OSC_COUNT; i++) {
 		emmaNodes.push(new AudioWorkletNode(audioContext,"emmasynth"));
+		emmaNodes[i].port.postMessage(["id",i]);
 	}
+
 	for (node of emmaNodes) {
 		node.connect(audioContext.destination);
+		/*node.port.onmessage = (e) => {
+			scope[e.data[0]] = scope[e.data[0]].slice(1).concat([e.data[1]]); genSVG();
+			if (e.data[0] == (OSC_COUNT-1)) {
+				genScope();
+			}
+		}*/
+		
 	}
 	bees = true;
 
