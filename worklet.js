@@ -25,7 +25,7 @@ class EmmaSynth extends AudioWorkletProcessor {
 		const output = outputs[0];
 		output.forEach((channel) => {
 			for (let i = 0; i < channel.length; i++) {
-				channel[i] = [saw, square][mjau(parameters, i, "wave")%2](parameters, i)
+				channel[i] = [saw, square][p(parameters, i, "wave")%2](parameters, i)
 
 				// note: a parameter contains an array of 128 values (one value for each of 128 samples),
 				// however it may contain a single value which is to be used for all 128 samples
@@ -36,18 +36,18 @@ class EmmaSynth extends AudioWorkletProcessor {
 	}
 }
 
-function mjau(parameters, i, par) {
+function p(parameters, i, par) {
 	return (parameters[par].length > 1 ? parameters[par][i]: parameters[par][0])
 }
 
 function square(parameters, i) {
-	return 0.5 * (((currentFrame+i) % (sampleRate / mjau(parameters, i, "freq"))) > (sampleRate/2 / mjau(parameters, i, "freq") )
-		? mjau(parameters, i, "gain") : -mjau(parameters, i, "gain"));
+	return 0.5 * (((currentFrame+i) % (sampleRate / p(parameters, i, "freq"))) > (sampleRate/2 / p(parameters, i, "freq") )
+		? p(parameters, i, "gain") : -p(parameters, i, "gain"));
 }
 
 function saw(parameters, i) {
-	return (((currentFrame+i) % (sampleRate / mjau(parameters, i, "freq"))) / (sampleRate/2 / mjau(parameters, i, "freq")) - 1)
-		* mjau(parameters, i, "gain")
+	return (((currentFrame+i) % (sampleRate / p(parameters, i, "freq"))) / (sampleRate/2 / p(parameters, i, "freq")) - 1)
+		* p(parameters, i, "gain")
 }
 
 registerProcessor("emmasynth", EmmaSynth);
