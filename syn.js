@@ -36,7 +36,7 @@ layouts = {
 }
 
 //#region edoids
-EDO = 9
+EDO = 12
 toprow    = new Array(layouts[EDO].length).fill(0).map((_,i)=>[0,layouts[EDO][i][0]?(i+1):-1])
 bottomrow = new Array(layouts[EDO].length).fill(0).map((_,i)=>[1,layouts[EDO][i][1]?i:-1])
 tonekeys  = bottomrow.concat(toprow).sort((a, b) => a[1]+0.5*a[0] > b[1]+0.5*b[0]?1:-1)
