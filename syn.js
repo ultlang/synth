@@ -26,18 +26,22 @@ keycodes = keys.map(row => Array.from(row).map(
 
 layouts = {
 	2: [[1,1]],
-	5: [[0,1],[1,1],[1,1]],
-	7: [[0,1],[1,1],[1,1],[1,1]],
-	12: [[0,1],[1,1],[1,1],[0,1],[1,1],[1,1],[1,1]],
-	16: [[0,1],[1,1],[1,1],[1,1],[0,1],[1,1],[1,1],[1,1],[1,1]],
+	3: [[1,1],[0,1]],
+	5: [[1,1],[1,1],[0,1]],
+	6: [[1,1],[1,1],[1,1]],
+	7: [[1,1],[1,1],[1,1],[0,1]],
+	9: [[1,1],[0,1],[1,1],[0,1,],[1,1],[0,1]],
+	12: [[1,1],[1,1],[0,1],[1,1],[1,1],[1,1],[0,1]],
+	16: [[1,1],[1,1],[1,1],[0,1],[1,1],[1,1],[1,1],[1,1],[0,1]],
 }
 
 //#region edoids
-EDO = 12
-toprow    = new Array(layouts[EDO].length).fill(0).map((_,i)=>[0,layouts[EDO][i][0]?i:-1])
+EDO = 9
+toprow    = new Array(layouts[EDO].length).fill(0).map((_,i)=>[0,layouts[EDO][i][0]?(i+1):-1])
 bottomrow = new Array(layouts[EDO].length).fill(0).map((_,i)=>[1,layouts[EDO][i][1]?i:-1])
 tonekeys  = bottomrow.concat(toprow).sort((a, b) => a[1]+0.5*a[0] > b[1]+0.5*b[0]?1:-1)
-	.filter(x => x[1] != -1).map(x=>x.toString())
+	.filter(x => x[1] != -1).map(x=>[x[0],x[1]%layouts[EDO].length].toString())
+console.log(tonekeys)
 if (tonekeys.length != EDO) {
 	throw Error("tuning does not match keyboard layout");
 }
@@ -49,7 +53,7 @@ function coordToOct(coord) {
 	if (!tonekeys.includes([row%2,col%lw].toString())) { //TODO: variable height of layout? maybe?
 		return  [-1, ((3-row)-(3-row)%2)/2 + (col-col%lw)/lw];
 	} else {
-		return [tonekeys.indexOf([row%2,col%lw].toString()), ((3-row)-(3-row)%2)/2 + (col-col%lw)/lw]
+		return [tonekeys.indexOf([row%2,col%lw].toString()), ((3-row)-(3-row)%2)/2 + (col-col%lw)/lw - (row%2==0&&col%lw==0?1:0)]
 		//return [tonekeys.indexOf([row%2,col%lw].toString()) + ((3-row)-(3-row)%2)/4, (col-col%lw)/lw]
 	}
 }
@@ -71,7 +75,7 @@ function coordToFreq(coord) {
 	if (place == -1) { 
 		return 0;
 	} else {
-		return Math.pow(2, (place+3)/EDO) * (1 << oct) * 110
+		return Math.pow(2, (place+3)/EDO + oct) * 110
 	}
 }
 
