@@ -186,7 +186,7 @@ async function click(e) {
 	if (!keysPressed.includes(code)) {
 		keysPressed.push(code);
 	}
-	if (!bees) {await setup();}
+	if (!bees) {await setup(); audioContext.resume()}
 	audio();
 	genSVG();
 }
