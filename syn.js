@@ -181,7 +181,7 @@ function clickToCode(x, y) {
 	return keycodes[row][col] || undefined
 }
 
-document.addEventListener("mousedown", async (e) => {
+document.addEventListener("pointerdown", async (e) => {
 	code = clickToCode(e.clientX, e.clientY)
 	if (!keysPressed.includes(code)) {
 		keysPressed.push(code);
@@ -190,7 +190,7 @@ document.addEventListener("mousedown", async (e) => {
 	audio();
 	genSVG();
 })
-document.addEventListener("mouseup", async (e) => {
+document.addEventListener("pointerup", async (e) => {
 	code = clickToCode(e.clientX, e.clientY)
 	keysPressed.splice(keysPressed.indexOf(code),1)
 	audio();
