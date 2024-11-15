@@ -50,7 +50,7 @@ function p(parameters, i, par) {
 }
 
 function square(parameters, i) {
-	return 0.5 * (((currentFrame+i) % (sampleRate / p(parameters, i, "freq"))) > (sampleRate/2 / p(parameters, i, "freq") )
+	return (1/Math.sqrt(3)) * (((currentFrame+i) % (sampleRate / p(parameters, i, "freq"))) > (sampleRate/2 / p(parameters, i, "freq") )
 		? p(parameters, i, "gain") : -p(parameters, i, "gain"));
 }
 
