@@ -153,7 +153,7 @@ document.addEventListener("keydown", async (e) => {
 	if (!keysPressed.includes(e.code)) {
 		keysPressed.push(e.code);
 	}
-	if (!bees) {await setup();}
+	if (!bees) {await setup(); audioContext.resume()}
 	audio();
 	genSVG();
 
