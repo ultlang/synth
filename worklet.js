@@ -35,9 +35,9 @@ class EmmaSynth extends AudioWorkletProcessor {
 		const output = outputs[0];
 		output.forEach((channel) => {
 			for (let i = 0; i < channel.length; i++) {
-				// channel[i] = p(parameters,i,"freq")!=0 ? [saw, square, sine][p(parameters, i, "wave")%3](parameters, i) : 0;
-				// sine has way too audible clicks, wait until adsr added
-				channel[i] = p(parameters,i,"freq")!=0 ? [saw, square][p(parameters, i, "wave")%2](parameters, i) : 0;
+				channel[i] = p(parameters,i,"freq")!=0 ? [saw, square, sine][p(parameters, i, "wave")%3](parameters, i) : 0;
+				// sine has way too audible clicks but meow
+				// channel[i] = p(parameters,i,"freq")!=0 ? [saw, square][p(parameters, i, "wave")%2](parameters, i) : 0;
 				/*if (i % 70 == 0 && currentFrame % 10 == 0) {
 					port.postMessage([this.id, channel[i]]);
 				}*/ // TODO: fix scope lol his is not working at all.

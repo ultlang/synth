@@ -4,6 +4,7 @@ keysPressed = [];
 var audioContext;
 var bees, waveSet;
 var freqs, waves;
+var wavetype = 0;
 
 const OSC_COUNT = 8
 oscInUse = Array(OSC_COUNT).fill(false)
@@ -31,7 +32,9 @@ layouts = {
 	6: [[1,1],[1,1],[1,1]],
 	7: [[1,1],[1,1],[1,1],[0,1]],
 	9: [[1,1],[0,1],[1,1],[0,1,],[1,1],[0,1]],
+	11: [[1,1],[1,1],[0,1],[1,1],[0,1],[1,1],[0,1]],
 	12: [[1,1],[1,1],[0,1],[1,1],[1,1],[1,1],[0,1]],
+	13: [[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[0,1]],
 	16: [[1,1],[1,1],[1,1],[0,1],[1,1],[1,1],[1,1],[1,1],[0,1]],
 	17: [[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[0,1]],
 }
@@ -61,19 +64,20 @@ function coordToOct(coord) {
 	} else {
 		return [tonekeys.indexOf([row%2,col%lw].toString()), ((3-row)-(3-row)%2)/2 + (col-col%lw)/lw - (row%2==0&&col%lw==0?1:0)]
 		//return [tonekeys.indexOf([row%2,col%lw].toString()) + ((3-row)-(3-row)%2)/4, (col-col%lw)/lw]
+		//// :?????what does this mean past emma
 	}
 }
 
 function codesToCoords_str(codes) {
 	return codes.map( code => 
 		(keycodes.map(row => [keycodes.indexOf(row), row.indexOf(code)] )
-		.find( x => x[1] != -1 ) || (["↑","↓"].includes(code) ? code : [-1,-1])).toString())
+		.find( x => x[1] != -1 ) || ("↓↑∓±".includes(code) ? code : [-1,-1])).toString())
 }
 
 function codesToCoords(codes) {
 	return codes.map( code => 
 		(keycodes.map(row => [keycodes.indexOf(row), row.indexOf(code)] )
-		.find( x => x[1] != -1 ) || [-1,-1]))
+		.find( x => x[1] != -1 ) || ("↓↑∓±".includes(code) ? code : [-1,-1])))
 }
 
 function coordToFreq(coord) {
@@ -109,12 +113,41 @@ function genSVG(){
 		playing = oscInUse[i] != false
 		svgind += `<rect x="550" y="${10+i*25}" width="15" height="15" fill="${playing ? '#cd96cd' : 'lightgray'}" stroke="${playing ? '#6c1d45' : 'silver'}" stroke-width="2"/>`
 	}
+
+	//#region volume controls (scary)
+		svgcontrols += `<path stroke="silver" stroke-width="2" d="M 590,17.5  L 730, 17.5"/>`
+		svgcontrols += `<rect width="10" height="15" fill="white" stroke="silver" stroke-width="2" x="650" y="10"/>`
+		svgcontrols += `<text x="660" y="42.5" font-family="Fairfax HD" fill="black" font-size="10px" text-anchor="middle" dominant-baseline="central">VOLUME (pretend this works)</text>`
+	//#endregion
+
+	//#region wave type controls
+	if (bees) {
+		wavetype = waves[0].value;
+	};
+	svgcontrols += `<rect width="20" height="40" stroke-width="2" fill="${a.includes("∓") ? '#f5d4ee' : 'white'}" stroke="${a.includes("∓") ? '#6c1d45' : 'silver'}" x="590" y="60"/> <text x="600" y="80" font-family="Fairfax HD" fill="black" font-size="20px" text-anchor="middle" dominant-baseline="central">&lt;</text>`
+	svgcontrols += `<rect width="20" height="40" stroke-width="2" fill="${a.includes("±") ? '#f5d4ee' : 'white'}" stroke="${a.includes("±") ? '#6c1d45' : 'silver'}" x="710" y="60"/> <text x="720" y="80" font-family="Fairfax HD" fill="black" font-size="20px" text-anchor="middle" dominant-baseline="central">&gt;</text>`
+	svgcontrols += `<text x="660" y="117.5" font-family="Fairfax HD" fill="black" font-size="20px" text-anchor="middle" dominant-baseline="central">WAVE</text>`
+
+	svgcontrols += `<rect width="80" height="40" stroke-width="2" fill="white" stroke="silver" x="620" y="60"/>`
+	svgcontrols += `<clipPath id="wavedisplay"><rect x="621" y="61" width="78" height="38"/></clipPath>`
+	wavepaths = [
+		`<path fill="none" stroke="${wavetype % 3 == 0 ? '#6c1d45' : 'silver'}" stroke-width="2" d="M 620,95 l 40,-30 v 30 l 40,-30" clip-path="url(#wavedisplay)"/>`, //saw
+		`<path fill="none" stroke="${wavetype % 3 == 1 ? '#6c1d45' : 'silver'}" stroke-width="2" d="M 620,95 h 20 v -30 h 20 v 30 h 20 v -30 h 20" clip-path="url(#wavedisplay)"/>`, // square
+		`<path fill="none" stroke="${wavetype % 3 == 2 ? '#6c1d45' : 'silver'}" stroke-width="2" d="M 610,95 c 7.268 0, 12.732 -30, 20 -30 s 12.732 30, 20 30 s 12.732 -30, 20 -30 s 12.732 30, 20 30 s 12.732 -30, 20 -30" clip-path="url(#wavedisplay)"/>` // sine : http://dmitry.baranovskiy.com/sine.html
+	]
+	svgcontrols += wavepaths[(wavetype+1) % 3];
+	svgcontrols += wavepaths[(wavetype+2) % 3];
+	svgcontrols += wavepaths[wavetype % 3]; // the active wave will be drawn on top
+	//#endregion
+
+	//#region tuning controls
 	svgcontrols += `<rect width="20" height="40" stroke-width="2" fill="${(edosAvailable.indexOf(EDO) == 0) ? 'white' : a.includes("↓") ? '#f5d4ee' : 'white'}" stroke="${(edosAvailable.indexOf(EDO) == 0) ? 'lightgray' : a.includes("↓") ? '#6c1d45' : 'silver'}" x="590" y="135"/> <text x="600" y="155" font-family="Fairfax HD" fill="${(edosAvailable.indexOf(EDO) == 0) ? 'lightgray' : 'black'}" font-size="20px" text-anchor="middle" dominant-baseline="central">&lt;</text>`
 	svgcontrols += `<rect width="20" height="40" stroke-width="2" fill="${(edosAvailable.indexOf(EDO) + 1 == edosAvailable.length) ? 'white' : a.includes("↑") ? '#f5d4ee' : 'white'}" stroke="${(edosAvailable.indexOf(EDO) + 1 == edosAvailable.length) ? 'lightgray' : a.includes("↑") ? '#6c1d45' : 'silver'}" x="710" y="135"/> <text x="720" y="155" font-family="Fairfax HD" fill="${(edosAvailable.indexOf(EDO) + 1 == edosAvailable.length) ? 'lightgray' : 'black'}" font-size="20px" text-anchor="middle" dominant-baseline="central">&gt;</text>`
 	
 	svgcontrols += `<rect width="80" height="40" stroke-width="2" fill="white" stroke="silver" x="620" y="135"/>`
 	svgcontrols += `<text x="660" y="155" font-family="Fairfax HD" fill="lightgray" font-size="40px" text-anchor="middle" dominant-baseline="central">${String.fromCodePoint(..."88".split("").map(x => x.charCodeAt(0)+129984))}</text>'<text x="660" y="155" font-family="Fairfax HD" fill="#6c1d45" font-size="40px" text-anchor="middle" dominant-baseline="central">${String.fromCodePoint(...EDO.toString().padStart(2, "0").split("").map(x => x.charCodeAt(0)+129984))}</text>`
 	svgcontrols += `<text x="660" y="192.5" font-family="Fairfax HD" fill="black" font-size="20px" text-anchor="middle" dominant-baseline="central">TUNING</text>`
+	//#endregion
 
 	keyboard.innerHTML = svgboard + svgtext + svgind + svgcontrols
 }
@@ -134,13 +167,13 @@ function genScope() {
 
 function audio() {
 	a = codesToCoords(keysPressed).map(x => (x[0]==3 ? [3,x[1]-1].toString() : x.toString()))
-	if (a.includes("3,-1") && !waveSet) {
+	if ((a.includes("3,-1") || a.includes("∓") || a.includes("±")) && !waveSet) {
 		for (i=0;i<OSC_COUNT;i++) {
-			waves[i].setValueAtTime(waves[i].value+1, audioContext.currentTime)
+			waves[i].setValueAtTime(waves[i].value+(a.includes("∓") ? 2 : 1), audioContext.currentTime)
 		}
 		waveSet = true
 	}
-	if (!a.includes("3,-1")) {
+	if (!a.includes("3,-1") && !a.includes("∓") && !a.includes("±")) {
 		waveSet = false
 	}
 
@@ -190,8 +223,13 @@ function clickToCode(x, y) {
 	row = Math.floor((y-5)/25)
 	if (x >= 585) {
 		if (row == 5 || row == 6) {
-			if (x > 705 && x < 735) {return "↑"}
 			if (x < 615) {return "↓"}
+			if (x > 705 && x < 735) {return "↑"}
+			else return undefined
+		}
+		if (row == 2 || row == 3) {
+			if (x < 615) {return "∓"}
+			if (x > 705 && x < 735) {return "±"}
 			else return undefined
 		}
 		else return undefined
@@ -205,7 +243,7 @@ async function click(e) {
 	if (!bees) {await setup();}
 	if (audioContext.state != "running") { audioContext.resume() }
 	code = clickToCode(e.clientX, e.clientY)
-	if ("↑↓".includes(code)) {
+	if ("↑↓∓±".includes(code)) {
 		if (code == "↑" && edosAvailable.indexOf(EDO) + 1 != edosAvailable.length) {layout(edosAvailable[edosAvailable.indexOf(EDO) + 1]);}
 		if (code == "↓" && edosAvailable.indexOf(EDO) != 0) {layout(edosAvailable[edosAvailable.indexOf(EDO) - 1]);}
 	}
@@ -233,7 +271,6 @@ layout(12);genSVG();
 
 
 async function setup() {
-	layout(12);
 	audioContext = new AudioContext();
 	await audioContext.audioWorklet.addModule("worklet.js");
 	emmaNodes = []
