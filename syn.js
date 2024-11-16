@@ -165,7 +165,8 @@ document.addEventListener("keydown", async (e) => {
 	if (!keysPressed.includes(e.code)) {
 		keysPressed.push(e.code);
 	}
-	if (!bees) {await setup(); audioContext.resume()}
+	if (!bees) {await setup();}
+	if (audioContext.state != running) { audioContext.resume() }
 	audio();
 	genSVG();
 
@@ -201,7 +202,8 @@ function clickToCode(x, y) {
 }
 
 async function click(e) {
-	if (!bees) {await setup(); audioContext.resume()}
+	if (!bees) {await setup();}
+	if (audioContext.state != running) { audioContext.resume() }
 	code = clickToCode(e.clientX, e.clientY)
 	if ("↑↓".includes(code)) {
 		if (code == "↑" && edosAvailable.indexOf(EDO) + 1 != edosAvailable.length) {layout(edosAvailable[edosAvailable.indexOf(EDO) + 1]);}
