@@ -35,18 +35,23 @@ layouts = {
 	16: [[1,1],[1,1],[1,1],[0,1],[1,1],[1,1],[1,1],[1,1],[0,1]],
 	17: [[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[0,1]],
 }
+edosAvailable = Object.keys(layouts).map(x => parseInt(x))
 
-//#region edoids
+// set up EDO
 EDO = 12
-toprow    = new Array(layouts[EDO].length).fill(0).map((_,i)=>[0,layouts[EDO][i][0]?(i+1):-1])
-bottomrow = new Array(layouts[EDO].length).fill(0).map((_,i)=>[1,layouts[EDO][i][1]?i:-1])
-tonekeys  = bottomrow.concat(toprow).sort((a, b) => a[1]+0.5*a[0] > b[1]+0.5*b[0]?1:-1)
-	.filter(x => x[1] != -1).map(x=>[x[0],x[1]%layouts[EDO].length].toString())
-console.log(tonekeys)
-if (tonekeys.length != EDO) {
-	throw Error("tuning does not match keyboard layout");
+var toprow, bottomrow, tonekeys;
+function layout(edo) {
+	EDO = edo
+	toprow    = new Array(layouts[EDO].length).fill(0).map((_,i)=>[0,layouts[EDO][i][0]?(i+1):-1])
+	bottomrow = new Array(layouts[EDO].length).fill(0).map((_,i)=>[1,layouts[EDO][i][1]?i:-1])
+	tonekeys  = bottomrow.concat(toprow).sort((a, b) => a[1]+0.5*a[0] > b[1]+0.5*b[0]?1:-1)
+		.filter(x => x[1] != -1).map(x=>[x[0],x[1]%layouts[EDO].length].toString())
+	console.log(tonekeys)
+	if (tonekeys.length != EDO) {
+		throw Error("tuning does not match keyboard layout");
+	}
 }
-//#endregion
+
 
 function coordToOct(coord) {
 	[row, col] = coord.split(",").map(x => parseInt(x));
@@ -62,7 +67,7 @@ function coordToOct(coord) {
 function codesToCoords_str(codes) {
 	return codes.map( code => 
 		(keycodes.map(row => [keycodes.indexOf(row), row.indexOf(code)] )
-		.find( x => x[1] != -1 ) || [-1,-1]).toString())
+		.find( x => x[1] != -1 ) || (["↑","↓"].includes(code) ? code : [-1,-1])).toString())
 }
 
 function codesToCoords(codes) {
@@ -84,7 +89,7 @@ function genSVG(){
 	svgboard = ""
 	svgtext = ""
 	svgind = ""
-	svgscope = ""
+	svgcontrols = ""
 	a = codesToCoords_str(keysPressed)
 	
 	for (i = 0; i < keys.length; i++){
@@ -102,9 +107,16 @@ function genSVG(){
 	}
 	for (i = 0; i < OSC_COUNT; i++) {
 		playing = oscInUse[i] != false
-		svgboard += `<rect x="550" y="${10+i*25}" width="15" height="15" fill="${playing ? '#cd96cd' : 'lightgray'}" stroke="${playing ? '#6c1d45' : 'silver'}" stroke-width="2"/>`
+		svgind += `<rect x="550" y="${10+i*25}" width="15" height="15" fill="${playing ? '#cd96cd' : 'lightgray'}" stroke="${playing ? '#6c1d45' : 'silver'}" stroke-width="2"/>`
 	}
-	keyboard.innerHTML = svgboard + svgtext + svgind
+	svgcontrols += `<rect width="20" height="40" stroke-width="2" fill="${(edosAvailable.indexOf(EDO) == 0) ? 'white' : a.includes("↓") ? '#f5d4ee' : 'white'}" stroke="${(edosAvailable.indexOf(EDO) == 0) ? 'lightgray' : a.includes("↓") ? '#6c1d45' : 'silver'}" x="590" y="135"/> <text x="600" y="155" font-family="Fairfax HD" fill="${(edosAvailable.indexOf(EDO) == 0) ? 'lightgray' : 'black'}" font-size="20px" text-anchor="middle" dominant-baseline="central">&lt;</text>`
+	svgcontrols += `<rect width="20" height="40" stroke-width="2" fill="${(edosAvailable.indexOf(EDO) + 1 == edosAvailable.length) ? 'white' : a.includes("↑") ? '#f5d4ee' : 'white'}" stroke="${(edosAvailable.indexOf(EDO) + 1 == edosAvailable.length) ? 'lightgray' : a.includes("↑") ? '#6c1d45' : 'silver'}" x="710" y="135"/> <text x="720" y="155" font-family="Fairfax HD" fill="${(edosAvailable.indexOf(EDO) + 1 == edosAvailable.length) ? 'lightgray' : 'black'}" font-size="20px" text-anchor="middle" dominant-baseline="central">&gt;</text>`
+	
+	svgcontrols += `<rect width="80" height="40" stroke-width="2" fill="white" stroke="silver" x="620" y="135"/>`
+	svgcontrols += `<text x="660" y="155" font-family="Fairfax HD" fill="lightgray" font-size="40px" text-anchor="middle" dominant-baseline="central">${String.fromCodePoint(..."88".split("").map(x => x.charCodeAt(0)+129984))}</text>'<text x="660" y="155" font-family="Fairfax HD" fill="#6c1d45" font-size="40px" text-anchor="middle" dominant-baseline="central">${String.fromCodePoint(...EDO.toString().padStart(2, "0").split("").map(x => x.charCodeAt(0)+129984))}</text>`
+	svgcontrols += `<text x="660" y="192.5" font-family="Fairfax HD" fill="black" font-size="20px" text-anchor="middle" dominant-baseline="central">TUNING</text>`
+
+	keyboard.innerHTML = svgboard + svgtext + svgind + svgcontrols
 }
 
 function genScope() {
@@ -174,19 +186,30 @@ function clickToCode(x, y) {
 	elemTop = keyboard.getClientRects()[0].top;
 	x = x - elemLeft;
 	y = y - elemTop;
-	row = Math.floor((y-5)/50)
-	if (row >= 0 && row <= 3) {
-		col = Math.floor((x-5)/50-offsets[row]);
+	row = Math.floor((y-5)/25)
+	if (x >= 585) {
+		if (row == 5 || row == 6) {
+			if (x > 705 && x < 735) {return "↑"}
+			if (x < 615) {return "↓"}
+			else return undefined
+		}
+		else return undefined
+	} else if (row >= 0 && row <= 7) {
+		col = Math.floor((x-5)/50-offsets[Math.floor(row/2)]);
 	} else {return undefined}
-	return keycodes[row][col] || undefined
+	return keycodes[Math.floor(row/2)][col] || undefined
 }
 
 async function click(e) {
+	if (!bees) {await setup(); audioContext.resume()}
 	code = clickToCode(e.clientX, e.clientY)
+	if ("↑↓".includes(code)) {
+		if (code == "↑" && edosAvailable.indexOf(EDO) + 1 != edosAvailable.length) {layout(edosAvailable[edosAvailable.indexOf(EDO) + 1]);}
+		if (code == "↓" && edosAvailable.indexOf(EDO) != 0) {layout(edosAvailable[edosAvailable.indexOf(EDO) - 1]);}
+	}
 	if (!keysPressed.includes(code)) {
 		keysPressed.push(code);
 	}
-	if (!bees) {await setup(); audioContext.resume()}
 	audio();
 	genSVG();
 }
@@ -202,12 +225,13 @@ async function release(e) {
 document.addEventListener("pointerup", release)
 document.addEventListener("touchup", release)
 
-genSVG();
+layout(12);genSVG();
 
 ////////////////////////////////////////////
 
 
 async function setup() {
+	layout(12);
 	audioContext = new AudioContext();
 	await audioContext.audioWorklet.addModule("worklet.js");
 	emmaNodes = []
