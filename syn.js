@@ -131,12 +131,13 @@ function genSVG(){
 	svgcontrols += `<rect width="80" height="40" stroke-width="2" fill="white" stroke="silver" x="620" y="60"/>`
 	svgcontrols += `<clipPath id="wavedisplay"><rect x="621" y="61" width="78" height="38"/></clipPath>`
 	wavepaths = [
-		`<path fill="none" stroke="${wavetype % 3 == 0 ? '#6c1d45' : 'silver'}" stroke-width="2" d="M 620,95 l 40,-30 v 30 l 40,-30" clip-path="url(#wavedisplay)"/>`, //saw
-		`<path fill="none" stroke="${wavetype % 3 == 1 ? '#6c1d45' : 'silver'}" stroke-width="2" d="M 620,95 h 20 v -30 h 20 v 30 h 20 v -30 h 20" clip-path="url(#wavedisplay)"/>`, // square
-		`<path fill="none" stroke="${wavetype % 3 == 2 ? '#6c1d45' : 'silver'}" stroke-width="2" d="M 610,95 c 7.268 0, 12.732 -30, 20 -30 s 12.732 30, 20 30 s 12.732 -30, 20 -30 s 12.732 30, 20 30 s 12.732 -30, 20 -30" clip-path="url(#wavedisplay)"/>` // sine : http://dmitry.baranovskiy.com/sine.html
+		`<path fill="none" stroke="${wavetype % 3 == 0 ? '#6c1d45' : 'silver'}" stroke-width="2" d="M 620,92.5 l 40,-25 v 25 l 40,-25" clip-path="url(#wavedisplay)"/>`, //saw
+		`<path fill="none" stroke="${wavetype % 3 == 1 ? '#6c1d45' : 'silver'}" stroke-width="2" d="M 620,92.5 h 20 v -25 h 20 v 25 h 20 v -25 h 20" clip-path="url(#wavedisplay)"/>`, // square
+		`<path fill="none" stroke="${wavetype % 3 == 2 ? '#6c1d45' : 'silver'}" stroke-width="2" d="M 610,92.5 c 7.268 0, 12.732 -25, 20 -25 s 12.732 25, 20 25 s 12.732 -25, 20 -25 s 12.732 25, 20 25 s 12.732 -25, 20 -25" clip-path="url(#wavedisplay)"/>` // sine : http://dmitry.baranovskiy.com/sine.html
 	]
 	svgcontrols += wavepaths[(wavetype+1) % 3];
 	svgcontrols += wavepaths[(wavetype+2) % 3];
+	svgcontrols += wavepaths[wavetype % 3].replace('"2"','"6"').replace("#6c1d45", "white");
 	svgcontrols += wavepaths[wavetype % 3]; // the active wave will be drawn on top
 	//#endregion
 
