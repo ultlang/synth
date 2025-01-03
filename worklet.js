@@ -7,9 +7,9 @@ class EmmaSynth extends AudioWorkletProcessor {
 	return [
 		{
 			name: "gain",
-			defaultValue: 0.2,
+			defaultValue: 50,
 			minValue: 0,
-			maxValue: 1,
+			maxValue: 100,
 			automationRate: "a-rate",
 		},
 		{
@@ -51,19 +51,25 @@ function p(parameters, i, par) {
 	return (parameters[par].length > 1 ? parameters[par][i]: parameters[par][0])
 }
 
+function ampl(vol) {
+	return 2/3 * Math.pow(vol/100, 2)
+}
+
 function square(parameters, i) {
-	return (1/Math.sqrt(3)) * (((currentFrame+i) % (sampleRate / p(parameters, i, "freq"))) > (sampleRate/2 / p(parameters, i, "freq") )
-		? p(parameters, i, "gain") : -p(parameters, i, "gain"));
+	return (1/Math.sqrt(3)) *
+		(((currentFrame+i) % (sampleRate / p(parameters, i, "freq"))) > (sampleRate/2 / p(parameters, i, "freq") ) ? 1 : -1)
+		* ampl(p(parameters, i, "gain"));
 }
 
 function saw(parameters, i) {
 	return (((currentFrame+i) % (sampleRate / p(parameters, i, "freq"))) / (sampleRate/2 / p(parameters, i, "freq")) - 1)
-		* p(parameters, i, "gain")
+		* ampl(p(parameters, i, "gain"));
 }
 
 function sine(parameters, i) {
-	return (Math.sqrt(2)/Math.sqrt(3)) * (Math.sin((p(parameters, i, "freq") / sampleRate) * 2 * Math.PI * (currentFrame+i)))
-		* p(parameters, i, "gain")
+	return (Math.sqrt(2)/Math.sqrt(3)) *
+		(Math.sin((p(parameters, i, "freq") / sampleRate) * 2 * Math.PI * (currentFrame+i)))
+		* ampl(p(parameters, i, "gain"));
 }
 
 registerProcessor("emmasynth", EmmaSynth);

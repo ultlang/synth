@@ -5,6 +5,7 @@ var audioContext;
 var bees, waveSet;
 var freqs, waves;
 var wavetype = 0;
+var volume = 50;
 
 const OSC_COUNT = 8
 oscInUse = Array(OSC_COUNT).fill(false)
@@ -55,6 +56,9 @@ function layout(edo) {
 	}
 }
 
+function special(code) {
+	return ((new Set("↓↑∓±ʌ")).intersection(new Set(code))).size != 0
+}
 
 function coordToOct(coord) {
 	[row, col] = coord.split(",").map(x => parseInt(x));
@@ -68,16 +72,10 @@ function coordToOct(coord) {
 	}
 }
 
-function codesToCoords_str(codes) {
-	return codes.map( code => 
-		(keycodes.map(row => [keycodes.indexOf(row), row.indexOf(code)] )
-		.find( x => x[1] != -1 ) || ("↓↑∓±".includes(code) ? code : [-1,-1])).toString())
-}
-
 function codesToCoords(codes) {
 	return codes.map( code => 
 		(keycodes.map(row => [keycodes.indexOf(row), row.indexOf(code)] )
-		.find( x => x[1] != -1 ) || ("↓↑∓±".includes(code) ? code : [-1,-1])))
+		.find( x => x[1] != -1 ) || (special(code) ? code : [-1,-1])))
 }
 
 function coordToFreq(coord) {
@@ -94,7 +92,7 @@ function genSVG(){
 	svgtext = ""
 	svgind = ""
 	svgcontrols = ""
-	a = codesToCoords_str(keysPressed)
+	a = codesToCoords(keysPressed).map(x => x.toString())
 	
 	for (i = 0; i < keys.length; i++){
 		for (j = 0; j < keys[i].length; j++){
@@ -114,10 +112,13 @@ function genSVG(){
 		svgind += `<rect x="550" y="${10+i*25}" width="15" height="15" fill="${playing ? '#cd96cd' : 'lightgray'}" stroke="${playing ? '#6c1d45' : 'silver'}" stroke-width="2"/>`
 	}
 
-	//#region volume controls (scary)
+	//#region volume controls
+	if (bees) {
+		volume = volumes[0].value;
+	}
 		svgcontrols += `<path stroke="silver" stroke-width="2" d="M 590,17.5  L 730, 17.5"/>`
-		svgcontrols += `<rect width="10" height="15" fill="white" stroke="silver" stroke-width="2" x="650" y="10"/>`
-		svgcontrols += `<text x="660" y="42.5" font-family="Fairfax HD" fill="black" font-size="10px" text-anchor="middle" dominant-baseline="central">VOLUME (pretend this works)</text>`
+		svgcontrols += `<rect width="10" height="15" fill="${a.some(x => x.includes("ʌ")) ? '#f5d4ee' : 'white'}" stroke="${a.some(x => x.includes("ʌ")) ? '#6c1d45' : 'silver'}" stroke-width="2" x="${585 + volume*1.4}" y="10"/>`
+		svgcontrols += `<text x="660" y="42.5" font-family="Fairfax HD" fill="black" font-size="20px" text-anchor="middle" dominant-baseline="central">${volume == 0 ? "&lt;MUTED&gt;" : "VOLUME"}</text>`
 	//#endregion
 
 	//#region wave type controls
@@ -169,6 +170,7 @@ function genScope() {
 function audio() {
 	a = codesToCoords(keysPressed).map(x => (x[0]==3 ? [3,x[1]-1].toString() : x.toString()))
 	if ((a.includes("3,-1") || a.includes("∓") || a.includes("±")) && !waveSet) {
+		console.log("setting wave type to", ["saw","square","sine"][(waves[1].value+(a.includes("∓") ? 2 : 1) % 3 + 3) % 3]) // mod of negatives is bees
 		for (i=0;i<OSC_COUNT;i++) {
 			waves[i].setValueAtTime(waves[i].value+(a.includes("∓") ? 2 : 1), audioContext.currentTime)
 		}
@@ -176,6 +178,14 @@ function audio() {
 	}
 	if (!a.includes("3,-1") && !a.includes("∓") && !a.includes("±")) {
 		waveSet = false
+	}
+
+	if (a.some(x => x.includes("ʌ"))) {
+		vol = parseInt(a.filter(x => x.match(/ʌ(\d+)/))[0].substring(1))
+		console.log("setting volume to", vol)
+		for (i=0;i<OSC_COUNT;i++) {
+			volumes[i].setValueAtTime(vol, audioContext.currentTime)
+		}
 	}
 
 	for (value of oscInUse) {
@@ -222,15 +232,18 @@ function clickToCode(x, y) {
 	x = x - elemLeft;
 	y = y - elemTop;
 	row = Math.floor((y-5)/25)
-	if (x >= 585) {
+	if (x >= 575) {
+		if (row == 0 || row == 1) {
+			return("ʌ" + Math.round(Math.min(Math.max(0, (x - 590) / 1.4), 100)).toString())
+		}
 		if (row == 5 || row == 6) {
-			if (x < 615) {return "↓"}
-			if (x > 705 && x < 735) {return "↑"}
+			if (x >= 585 && x < 615) {return "↓"}
+			if (x >= 705 && x < 735) {return "↑"}
 			else return undefined
 		}
 		if (row == 2 || row == 3) {
-			if (x < 615) {return "∓"}
-			if (x > 705 && x < 735) {return "±"}
+			if (x >= 585 && x < 615) {return "∓"}
+			if (x >= 705 && x < 735) {return "±"}
 			else return undefined
 		}
 		else return undefined
@@ -244,7 +257,7 @@ async function click(e) {
 	if (!bees) {await setup();}
 	if (audioContext.state != "running") { audioContext.resume() }
 	code = clickToCode(e.clientX, e.clientY)
-	if ("↑↓∓±".includes(code)) {
+	if (special(code)) {
 		if (code == "↑" && edosAvailable.indexOf(EDO) + 1 != edosAvailable.length) {layout(edosAvailable[edosAvailable.indexOf(EDO) + 1]);}
 		if (code == "↓" && edosAvailable.indexOf(EDO) != 0) {layout(edosAvailable[edosAvailable.indexOf(EDO) - 1]);}
 	}
@@ -254,8 +267,8 @@ async function click(e) {
 	audio();
 	genSVG();
 }
-document.addEventListener("pointerdown",  click)
-document.addEventListener("touchdown",  click)
+document.addEventListener("pointerdown", click)
+document.addEventListener("touchdown", click)
 
 async function release(e) {
 	code = clickToCode(e.clientX, e.clientY)
@@ -294,9 +307,11 @@ async function setup() {
 
 	freqs = []
 	waves = []
+	volumes = []
 	for (node of emmaNodes) {
 		freqs.push(node.parameters.get("freq"));
 		waves.push(node.parameters.get("wave"));
+		volumes.push(node.parameters.get("gain"));
 	}
 
 }
