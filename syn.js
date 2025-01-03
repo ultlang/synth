@@ -286,7 +286,7 @@ layout(12);genSVG();
 
 async function setup() {
 	audioContext = new AudioContext();
-	await audioContext.audioWorklet.addModule("worklet.js");
+	await audioContext.audioWorklet.addModule("worklet.js?03012500");
 	emmaNodes = []
 	for (i = 0; i < OSC_COUNT; i++) {
 		emmaNodes.push(new AudioWorkletNode(audioContext,"emmasynth"));
