@@ -153,7 +153,7 @@ function genSVG(){
 	svgcontrols += `<text x="660" y="192.5" font-family="Fairfax HD" fill="black" font-size="20px" text-anchor="middle" dominant-baseline="central">TUNING</text>`
 	//#endregion
 
-	keyboard.innerHTML = svgboard + svgtext + svgind + svgcontrols
+	keyboard.innerHTML = "<g id='board'>"+ svgboard + svgtext + "</g><g id='indicators'>" + svgind + "</g><g id='controls'>" + svgcontrols + "</g>"
 }
 
 function genScope() {
